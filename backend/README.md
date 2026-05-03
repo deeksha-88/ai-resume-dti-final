@@ -1,38 +1,8 @@
-# AI Resume Analyzer & Job Recommender
+# AI Resume Analyzer — Backend
 
-A complete, fully working AI-powered resume analyzer with:
-- PDF parsing (in-browser via `pdfjs-dist`)
-- Skill extraction & match scoring
-- Bar / Pie / Radar charts (Recharts)
-- Job recommendations, salary insights (INR)
-- Learning roadmap (W3Schools, freeCodeCamp, MDN only)
-- Modified resume suggestions
-- Conversational mock interview
-- Rule-based chatbot grounded in your analysis
+Express server that powers all analysis (skill match, score, suggestions, roadmap, salary, interview, chatbot). The frontend has **no** local analysis logic — it calls this server.
 
-## Architecture
-
-```
-/                      → React + Vite frontend (this repo root)
-/backend/server.js     → Node.js + Express drop-in backend (same logic)
-```
-
-The frontend ships with the **same analysis logic** (`src/lib/analysis.ts`) so it
-works fully offline in the browser. The Express backend (`/backend/server.js`)
-exposes the identical contract for environments that require a real API.
-
----
-
-## Run the frontend
-
-```bash
-npm install
-npm run dev
-```
-
-Open the URL printed by Vite (usually http://localhost:5173).
-
-## Run the backend (optional)
+## Run
 
 ```bash
 cd backend
@@ -41,26 +11,20 @@ node server.js
 # → http://localhost:5000
 ```
 
-### To make the frontend hit the Express backend
+## Configure the frontend
 
-In `src/pages/UploadPage.tsx`, replace the `analyze(...)` call with:
+At the project root, create `.env`:
 
-```ts
-const res = await fetch("http://localhost:5000/analyze", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ resumeText, jobRole }),
-}).then(r => r.json());
+```
+VITE_API_URL=http://localhost:5000
 ```
 
-### API contract
+Then `npm run dev` in the project root.
 
-`POST /analyze`
+## Endpoints
 
-Body:
-```json
-{ "resumeText": "string", "jobRole": "string" }
-```
+### `POST /analyze`
+Body: `{ "resumeText": string, "jobRole": string }`
 
 Response:
 ```json
@@ -70,19 +34,22 @@ Response:
   "missingSkills": ["next.js", "testing"],
   "suggestions": ["..."],
   "jobRecommendations": ["..."],
-  "salaryInsights": "Estimated annual package for ...: ₹...",
-  "learningRoadmap": [{ "title": "...", "link": "https://www.w3schools.com/..." }],
+  "salaryInsights": "Estimated annual package ...",
+  "learningRoadmap": [{ "title": "...", "link": "https://..." }],
   "modifiedResume": "...",
   "mockInterviewQuestions": ["..."],
-  "chatbotResponse": "..."
+  "chatbotResponse": "...",
+  "jobRole": "frontend developer"
 }
 ```
 
-## Deploy backend on Render
+### `POST /chat`
+Body: `{ "message": string, "context": AnalysisResult }`
+Response: `{ "reply": string }`
 
-1. Push `/backend` to a GitHub repo (or this whole repo).
-2. On Render → **New Web Service** → connect repo.
-3. Set **Root Directory** to `backend`.
-4. Build Command: `npm install`
-5. Start Command: `node server.js`
-6. Free instance is fine. Render assigns a public URL — use that instead of `http://localhost:5000` in the frontend.
+## Deploy on Render
+
+1. New Web Service → connect repo
+2. Root Directory: `backend`
+3. Build: `npm install` · Start: `node server.js`
+4. Set the resulting URL as `VITE_API_URL` for the frontend build.
