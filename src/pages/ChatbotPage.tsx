@@ -32,12 +32,17 @@ export default function ChatbotPage() {
 
   if (!r) return <EmptyState />;
 
-  function send(text: string) {
+  async function send(text: string) {
     const t = text.trim();
     if (!t) return;
-    const reply = chatbotReply(t, r!);
-    setMsgs((m) => [...m, { role: "user", text: t }, { role: "bot", text: reply }]);
+    setMsgs((m) => [...m, { role: "user", text: t }]);
     setInput("");
+    try {
+      const reply = await chatbotReply(t, r!);
+      setMsgs((m) => [...m, { role: "bot", text: reply }]);
+    } catch (e: any) {
+      setMsgs((m) => [...m, { role: "bot", text: `⚠️ ${e?.message ?? "Chat failed"}` }]);
+    }
   }
 
   return (

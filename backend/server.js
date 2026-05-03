@@ -1,6 +1,8 @@
-// Express backend that mirrors the client-side analyzer.
+// Express backend — sole source of truth for analysis logic.
 // Run: cd backend && npm install && node server.js
-// Endpoint: POST http://localhost:5000/analyze  { resumeText, jobRole }
+// Endpoints:
+//   POST /analyze  { resumeText, jobRole }
+//   POST /chat     { message, context }
 
 const express = require("express");
 const cors = require("cors");
@@ -178,7 +180,30 @@ function interviewQuestionsFor(role, missing) {
 }
 
 function chatbotIntro(score, missing, matched) {
-  return `Hi! I've analyzed your resume. You scored ${score}%. You're strong in ${matched.slice(0,3).join(", ") || "general fundamentals"}. Biggest gaps: ${missing.slice(0,3).join(", ") || "—"}.`;
+  return `Hi! I've analyzed your resume. You scored ${score}%. You're strong in ${matched.slice(0,3).join(", ") || "general fundamentals"}. Biggest gaps: ${missing.slice(0,3).join(", ") || "—"}. Ask me "how can I improve?", "what skills am I missing?", "salary?", or "suggest projects".`;
+}
+
+function chatbotReply(message, ctx) {
+  const m = String(message || "").toLowerCase();
+  if (/missing|gap|lack/.test(m)) {
+    return ctx.missingSkills?.length
+      ? `You're missing: ${ctx.missingSkills.join(", ")}.`
+      : "You're not missing any major skills for this role — nice work!";
+  }
+  if (/improve|better|suggest|advice|tip/.test(m)) return "• " + (ctx.suggestions || []).join("\n• ");
+  if (/salary|pay|compensation|ctc|package/.test(m)) return ctx.salaryInsights || "No salary info available.";
+  if (/score|match|rating/.test(m)) return `Your match score for ${ctx.jobRole} is ${ctx.score}%.`;
+  if (/job|role|position|opportunit/.test(m)) return `Based on your profile: ${(ctx.jobRecommendations || []).join(", ")}.`;
+  if (/learn|roadmap|course|study|resource/.test(m))
+    return "Top resources for you:\n" + (ctx.learningRoadmap || []).slice(0,5).map(r=>`• ${r.title} → ${r.link}`).join("\n");
+  if (/project|build|portfolio/.test(m))
+    return ctx.missingSkills?.length
+      ? `Build small projects around: ${ctx.missingSkills.slice(0,4).join(", ")}. Ship them on GitHub with live demos.`
+      : "Build one big capstone project that showcases the full role's skill set end-to-end.";
+  if (/interview|question/.test(m))
+    return "Sample interview prompts:\n" + (ctx.mockInterviewQuestions || []).slice(0,3).map(q=>`• ${q}`).join("\n");
+  if (/^(hi|hello|hey)/.test(m)) return chatbotIntro(ctx.score, ctx.missingSkills || [], ctx.matchedSkills || []);
+  return `I can answer about: missing skills, how to improve, salary, score, job recommendations, learning roadmap, project ideas, or interview prep. (You asked: "${message}")`;
 }
 
 app.post("/analyze", (req, res) => {
@@ -211,7 +236,17 @@ app.post("/analyze", (req, res) => {
   }
 });
 
-app.get("/", (_req, res) => res.json({ ok: true, service: "ai-resume-analyzer", endpoint: "POST /analyze" }));
+app.post("/chat", (req, res) => {
+  try {
+    const { message, context } = req.body || {};
+    if (!message || !context) return res.status(400).json({ error: "message and context are required" });
+    res.json({ reply: chatbotReply(message, context) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get("/", (_req, res) => res.json({ ok: true, service: "ai-resume-analyzer", endpoints: ["POST /analyze", "POST /chat"] }));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✓ Backend listening on http://localhost:${PORT}`));
