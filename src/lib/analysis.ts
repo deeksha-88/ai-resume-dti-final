@@ -31,8 +31,7 @@ export const SUPPORTED_ROLE_LIST: string[] = [
 ];
 
 const API_URL =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
-  "http://localhost:5000";
+  import.meta.env.VITE_API_URL ||"http://localhost:5000";
 
 async function postJSON<T>(path: string, body: unknown): Promise<T> {
   let res: Response;
