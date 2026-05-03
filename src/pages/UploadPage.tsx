@@ -67,8 +67,8 @@ export default function UploadPage() {
     }
     setBusy(true);
     try {
-      // Mirrors POST /analyze. Same payload shape as the Express backend.
-      const res = analyze(resumeText, jobRole);
+      // Calls the Express backend at VITE_API_URL (POST /analyze).
+      const res = await analyze(resumeText, jobRole);
       setResult(res);
       toast.success(`Analysis complete · score ${res.score}%`);
       navigate("/score");
