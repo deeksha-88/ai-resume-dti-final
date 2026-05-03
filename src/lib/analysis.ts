@@ -36,7 +36,7 @@ const API_URL =
 async function postJSON<T>(path: string, body: unknown): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`, {
+    res = await fetch(`${API_URL}/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
